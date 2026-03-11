@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Digital Learning Hub</title>
+
+    <style>
+        /* global reset and background */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #eaeaea;
+            color: #333;
+        }
+
+        /* navbar spans full width */
+        .navbar {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+        }
+
+        .navbar h1 {
+            display: inline;
+            font-size: 1.5rem;
+        }
+
+        .navbar a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 8px;
+        }
+
+        .navbar a:hover {
+            background-color: #555;
+            border-radius: 4px;
+        }
+
+        .search {
+            display: flex;
+            align-items: center;
+        }
+
+        .search input {
+            padding: 5px;
+            border: none;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .search button {
+            padding: 6px 10px;
+            border: none;
+            background: #555;
+            color: white;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        .container {
+            width: 100%;
+            margin: 0;
+            background: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        h2 {
+            margin-top: 40px;
+            color: #444;
+        }
+
+        section {
+            padding: 40px 20px;
+        }
+
+        section:nth-child(odd) {
+            background: #f9f9f9;
+        }
+
+        section:nth-child(even) {
+            background: #ffffff;
+        }
+
+        p {
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .gallery img {
+            width: 200px;
+            height: 150px;
+            border-radius: 10px;
+            object-fit: cover;
+        }
+
+        .login {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .login input {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            width: 100%;
+            max-width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .login button {
+            padding: 10px 20px;
+            border: none;
+            background: #333;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .login button:hover {
+            background: #555;
+        }
+
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 10px;
+        }
+
+        video {
+            width: 1500px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        audio {
+            width: 100%;
+            max-width: 400px;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <h1>📚 Digital Learning</h1>
+
+    <a href="#">Home</a>
+    <a href="#">Menu</a>
+    <a href="#">Services</a>
+    <a href="#">Contact</a>
+
+    <div class="search">
+        <input type="text" placeholder="Search">
+        <button>Search</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- VIDEO -->
+    <h2>Introduction Video</h2>< align="center"></align>
+    <video width="500" loop autoplay muted>
+        <source src="C:\Users\bhava\OneDrive\Desktop\fft_bhavana\explaining-digital-learning-and-development.mp4" type="video/mp4">
+    </video>
+
+    <!-- MUSIC -->
+    <h2>Learning Music</h2>
+    <audio controls>
+        <source src="music.mp3" type="audio/mp3">
+    </audio>
+
+    <!-- PARAGRAPH -->
+    <h2>About Our Website</h2>
+    <p>
+        Digital Learning Hub is an online education platform that provides 
+        high-quality courses in programming, data science, web development, 
+        and design. Our mission is to help students gain practical skills 
+        and improve their career opportunities through structured learning.
+    </p>
+
+    <!-- TABLE -->
+    <h2>Our Branch Locations</h2>
+    <table>
+        <tr>
+            <th>Branch</th>
+            <th>City</th>
+            <th>Courses Available</th>
+        </tr>
+        <tr>
+            <td>Main Branch</td>
+            <td>Bangalore</td>
+            <td>50+</td>
+        </tr>
+        <tr>
+            <td>South Branch</td>
+            <td>Chennai</td>
+            <td>40+</td>
+        </tr>
+        <tr>
+            <td>North Branch</td>
+            <td>Delhi</td>
+            <td>60+</td>
+        </tr>
+    </table>
+
+    <!-- LOGIN FORM -->
+    <h2>Login Form</h2>
+    <div class="login">
+        <input type="text" placeholder="Username">
+        <input type="email" placeholder="Email">
+        <input type="password" placeholder="Password">
+        <button>Login</button>
+    </div>
+
+    <!-- IMAGE GALLERY -->
+    <h2>Course Gallery</h2>
+    <div class="gallery">
+        <img src="C:\Users\bhava\OneDrive\Desktop\fft_bhavana\Image1.jpg" alt="Course1">
+        <img src="C:\Users\bhava\OneDrive\Desktop\fft_bhavana\Image2.jpg" alt="Course2">
+        <img src="C:\Users\bhava\OneDrive\Desktop\fft_bhavana\Image3.jpg" alt="Course3">
+        <img src="C:\Users\bhava\OneDrive\Desktop\fft_bhavana\Image4.jpg" alt="Course4">
+    </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    © 2026 Digital Learning Hub | All Rights Reserved
+</div>
+
+</body>
+</html>
