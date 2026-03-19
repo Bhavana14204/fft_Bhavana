@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WealthOS — Finance Command Center</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ══════════════════════════════════════════
+   WEALTHOS — OBSIDIAN × VIOLET × GOLD
+   Single-file: Login + Dashboard
+══════════════════════════════════════════ */
+:root {
+  --bg-base:      #0e0b14;
+  --bg-surface:   #13101c;
+  --bg-card:      #1a1625;
+  --bg-elevated:  #211d30;
+  --violet:       #8b5cf6;
+  --violet-lite:  #a78bfa;
+  --violet-glow:  rgba(139,92,246,0.3);
+  --gold:         #f59e0b;
+  --gold-lite:    #fcd34d;
+  --gold-glow:    rgba(245,158,11,0.25);
+  --rose:         #f43f5e;
+  --rose-glow:    rgba(244,63,94,0.25);
+  --emerald:      #10b981;
+  --emerald-glow: rgba(16,185,129,0.25);
+  --sky:          #38bdf8;
+  --text-pri:     #f1eeff;
+  --text-sec:     #8b84a8;
+  --text-dim:     #4a4563;
+  --border:       rgba(139,92,246,0.12);
+  --border-glow:  rgba(139,92,246,0.35);
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --radius-card:  18px;
+  --radius-sm:    10px;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; height:100%; }
+
+body {
+  font-family: var(--font-display);
+  background: var(--bg-base);
+  color: var(--text-pri);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Noise */
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:0; opacity:.45;
+}
+/* Grid */
+body::after {
+  content:''; position:fixed; inset:0;
+  background-image:linear-gradient(rgba(139,92,246,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.025) 1px,transparent 1px);
+  background-size:50px 50px; pointer-events:none; z-index:0;
+}
+
+/* Ambient glows */
+.glow-blob { position:fixed; border-radius:50%; filter:blur(130px); pointer-events:none; z-index:0; }
+.gb1 { width:700px;height:700px;background:var(--violet);top:-200px;right:-200px;opacity:.08;animation:gP 9s ease-in-out infinite alternate; }
+.gb2 { width:500px;height:500px;background:var(--gold);bottom:-150px;left:-150px;opacity:.06;animation:gP 7s ease-in-out 1s infinite alternate-reverse; }
+.gb3 { width:350px;height:350px;background:var(--rose);top:40%;left:40%;opacity:.05;animation:gP 11s ease-in-out infinite alternate; }
+@keyframes gP { 0%{opacity:.03}100%{opacity:.12} }
+
+/* ═══════════════════════════════════
+   APP SCREENS — show/hide
+═══════════════════════════════════ */
+#screen-login    { display:flex; min-height:100vh; }
+#screen-dashboard { display:none; }
+
+#screen-login.fade-out {
+  animation: screenOut .55s cubic-bezier(.4,0,1,1) forwards;
+}
+#screen-dashboard.fade-in {
+  animation: screenIn .65s cubic-bezier(0,0,.2,1) forwards;
+}
+@keyframes screenOut { to { opacity:0; transform:scale(.97); } }
+@keyframes screenIn  { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+
+/* ════════════════════════════════════
+   LOGIN — TWO-PANEL
+════════════════════════════════════ */
+.split { display:flex; width:100%; min-height:100vh; position:relative; z-index:1; }
+
+/* LEFT brand panel */
+.panel-left {
+  flex: 1.2; display:flex; flex-direction:column;
+  justify-content:space-between; padding:3rem 3.5rem;
+  position:relative; overflow:hidden;
+  background:linear-gradient(145deg,#100d1a 0%,#0e0b14 100%);
+  border-right:1px solid var(--border);
+}
+.panel-left::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse 70% 60% at 30% 40%,rgba(139,92,246,.12),transparent 65%),
+             radial-gradient(ellipse 50% 40% at 80% 80%,rgba(245,158,11,.08),transparent 60%);
+  pointer-events:none;
+}
+
+/* Orbit rings */
+.orbit-wrap { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
+.orbit { position:absolute; border-radius:50%; border:1px solid; transform:translate(-50%,-50%); animation:spinO linear infinite; }
+.o1 { width:420px;height:420px;border-color:rgba(139,92,246,.06);animation-duration:35s; }
+.o2 { width:600px;height:600px;border-color:rgba(245,158,11,.04);animation-duration:55s;animation-direction:reverse; }
+.o3 { width:800px;height:800px;border-color:rgba(139,92,246,.03);animation-duration:75s; }
+@keyframes spinO { from{transform:translate(-50%,-50%) rotate(0)}to{transform:translate(-50%,-50%) rotate(360deg)} }
+.orbit::after { content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:var(--violet-lite);top:0;left:50%;transform:translateX(-50%);box-shadow:0 0 12px 2px rgba(167,139,250,.5); }
+.o2::after { background:var(--gold);box-shadow:0 0 12px 2px rgba(245,158,11,.5); }
+.o3::after { width:5px;height:5px;background:var(--rose);box-shadow:0 0 10px 2px rgba(244,63,94,.4); }
+.center-orb { position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.35),rgba(245,158,11,.15) 60%,transparent 80%);box-shadow:0 0 40px rgba(139,92,246,.3),0 0 80px rgba(139,92,246,.1);display:flex;align-items:center;justify-content:center;font-size:2rem;animation:orbP 4s ease-in-out infinite; }
+@keyframes orbP { 0%,100%{box-shadow:0 0 40px rgba(139,92,246,.3),0 0 80px rgba(139,92,246,.1)}50%{box-shadow:0 0 60px rgba(139,92,246,.5),0 0 120px rgba(139,92,246,.2)} }
+
+/* Floating stat cards */
+.stat-float { position:absolute;background:rgba(26,22,37,.9);border:1px solid rgba(139,92,246,.2);border-radius:14px;padding:.75rem 1.1rem;backdrop-filter:blur(20px);animation:fUp 3s ease-in-out infinite alternate; }
+.stat-float:nth-child(1){bottom:22%;left:8%;animation-delay:0s;}
+.stat-float:nth-child(2){top:28%;right:6%;animation-delay:1.2s;}
+.stat-float:nth-child(3){bottom:36%;right:3%;animation-delay:.6s;}
+@keyframes fUp { 0%{transform:translateY(0)}100%{transform:translateY(-10px)} }
+.sf-label { font-family:var(--font-mono);font-size:.58rem;color:var(--text-sec);letter-spacing:.1em;text-transform:uppercase; }
+.sf-value { font-size:.95rem;font-weight:800;margin-top:2px;letter-spacing:-.02em; }
+
+.panel-left-top  { position:relative;z-index:1; }
+.panel-left-bot  { position:relative;z-index:1; }
+
+.brand-logo { display:flex;align-items:center;gap:14px; }
+.brand-icon { width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#13101c,#1a1625);border:1px solid rgba(139,92,246,.3);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(139,92,246,.15); }
+.brand-icon svg { width:30px;height:30px; }
+.brand-name { font-size:1.5rem;font-weight:800;letter-spacing:-.04em; }
+.brand-tagline { font-family:var(--font-mono);font-size:.6rem;color:var(--violet-lite);letter-spacing:.18em;text-transform:uppercase;margin-top:2px; }
+
+.hero-heading { font-size:clamp(2rem,3.5vw,3rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;margin-bottom:1rem; }
+.hero-heading .grad { background:linear-gradient(135deg,var(--text-pri) 20%,var(--gold-lite));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.hero-sub { font-size:.9rem;color:var(--text-sec);line-height:1.7;max-width:380px; }
+.feat-list { display:flex;flex-direction:column;gap:.55rem;margin-top:1.5rem; }
+.feat-item { display:flex;align-items:center;gap:11px;font-size:.82rem;color:var(--text-sec);font-family:var(--font-mono); }
+.feat-dot { width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald);flex-shrink:0; }
+
+.testimonial { background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:1.1rem 1.3rem;font-size:.82rem;line-height:1.7;color:var(--text-sec);font-style:italic; }
+.testi-author { display:flex;align-items:center;gap:9px;margin-top:.8rem; }
+.testi-av { width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(139,92,246,.3),rgba(245,158,11,.2));display:flex;align-items:center;justify-content:center;font-size:.8rem; }
+.testi-name { font-size:.72rem;font-weight:700;color:var(--text-pri);font-family:var(--font-mono); }
+.testi-role { font-size:.62rem;color:var(--text-dim);font-family:var(--font-mono); }
+
+/* RIGHT form panel */
+.panel-right { flex:1;min-width:360px;display:flex;align-items:center;justify-content:center;padding:2.5rem 2rem;position:relative; }
+.login-box { width:100%;max-width:420px;animation:boxIn .6s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes boxIn { from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:none} }
+
+.login-title { font-size:1.9rem;font-weight:800;letter-spacing:-.04em;line-height:1.15;background:linear-gradient(135deg,var(--text-pri) 30%,var(--gold-lite));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.login-sub { font-size:.82rem;color:var(--text-sec);margin-top:.4rem;font-family:var(--font-mono); }
+
+.social-row { display:flex;gap:.7rem;margin:1.6rem 0 1.5rem; }
+.soc-btn { flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:.62rem;border-radius:11px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-sec);font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--font-mono);letter-spacing:.02em; }
+.soc-btn:hover { background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:var(--text-pri);transform:translateY(-1px); }
+
+.divider { display:flex;align-items:center;gap:12px;margin-bottom:1.6rem; }
+.div-line { flex:1;height:1px;background:rgba(255,255,255,.06); }
+.div-text { font-family:var(--font-mono);font-size:.6rem;color:var(--text-dim);letter-spacing:.1em;white-space:nowrap; }
+
+.field-group { margin-bottom:1.1rem; }
+.f-label { font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-sec);margin-bottom:6px;display:block; }
+.f-wrap { position:relative; }
+.f-icon { position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);font-size:.85rem;pointer-events:none;transition:color .2s; }
+.f-input { width:100%;padding:.7rem .9rem .7rem 2.6rem;background:rgba(255,255,255,.04);border:1px solid rgba(139,92,246,.15);border-radius:12px;color:var(--text-pri);font-family:var(--font-mono);font-size:.82rem;outline:none;transition:all .25s; }
+.f-input:focus { background:rgba(139,92,246,.07);border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.12),0 4px 20px rgba(139,92,246,.08); }
+.f-wrap:focus-within .f-icon { color:var(--violet-lite); }
+.f-input::placeholder { color:var(--text-dim); }
+.pass-toggle { position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:.8rem;padding:2px;transition:color .2s; }
+.pass-toggle:hover { color:var(--violet-lite); }
+
+.row-opts { display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem; }
+.remember { display:flex;align-items:center;gap:8px;cursor:pointer; }
+.custom-chk { width:16px;height:16px;border-radius:5px;border:1px solid rgba(139,92,246,.3);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0; }
+.custom-chk.checked { background:rgba(139,92,246,.25);border-color:var(--violet);box-shadow:0 0 8px rgba(139,92,246,.2); }
+.custom-chk.checked::after { content:'✓';font-size:.6rem;color:var(--violet-lite); }
+.remember-label { font-family:var(--font-mono);font-size:.68rem;color:var(--text-sec); }
+.forgot-link { font-family:var(--font-mono);font-size:.68rem;color:var(--violet-lite);text-decoration:none;transition:color .2s; }
+.forgot-link:hover { color:var(--gold); }
+
+.btn-submit { width:100%;padding:.78rem;background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(245,158,11,.15));border:1px solid rgba(139,92,246,.4);border-radius:12px;color:var(--violet-lite);font-family:var(--font-mono);font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:10px;position:relative;overflow:hidden;margin-bottom:1.2rem; }
+.btn-submit:hover { box-shadow:0 0 30px rgba(139,92,246,.3),0 8px 30px rgba(0,0,0,.4);transform:translateY(-2px);color:var(--gold-lite); }
+.btn-submit:active { transform:translateY(0); }
+.btn-submit.loading { pointer-events:none; }
+.btn-submit.loading .btn-text { opacity:0; }
+.btn-submit.loading::after { content:'';position:absolute;width:18px;height:18px;border:2px solid rgba(139,92,246,.3);border-top-color:var(--violet-lite);border-radius:50%;animation:spin2 .7s linear infinite; }
+@keyframes spin2 { to{transform:rotate(360deg)} }
+
+.signup-row { text-align:center;font-family:var(--font-mono);font-size:.7rem;color:var(--text-dim); }
+.signup-row a { color:var(--violet-lite);text-decoration:none;font-weight:700;transition:color .2s; }
+.signup-row a:hover { color:var(--gold); }
+
+.trust-row { display:flex;align-items:center;justify-content:center;gap:1.2rem;margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid rgba(255,255,255,.05); }
+.trust-item { display:flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:.58rem;color:var(--text-dim); }
+.trust-item svg { width:12px;height:12px;opacity:.5; }
+
+.error-msg { background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:10px;padding:.6rem 1rem;font-family:var(--font-mono);font-size:.72rem;color:var(--rose);margin-bottom:1rem;display:none;align-items:center;gap:8px; }
+.error-msg.show { display:flex;animation:shake .4s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)} }
+
+/* Success inline */
+.success-msg-inline { background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:.6rem 1rem;font-family:var(--font-mono);font-size:.72rem;color:var(--emerald);margin-bottom:1rem;display:none;align-items:center;gap:8px; }
+.success-msg-inline.show { display:flex; }
+
+/* ── AUTH TABS ── */
+.auth-tabs { position:relative;display:flex;background:rgba(255,255,255,.04);border:1px solid rgba(139,92,246,.15);border-radius:12px;padding:4px;margin-bottom:1.8rem; }
+.auth-tab { flex:1;font-family:var(--font-mono);font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.52rem .5rem;border:none;background:transparent;color:var(--text-dim);cursor:pointer;border-radius:9px;position:relative;z-index:1;transition:color .25s; }
+.auth-tab.active { color:var(--text-pri); }
+.tab-slider { position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(245,158,11,.12));border:1px solid rgba(139,92,246,.3);border-radius:9px;box-shadow:0 2px 12px rgba(139,92,246,.15);transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
+.tab-slider.right { transform:translateX(100%); }
+
+/* ── AUTH FORMS ── */
+.auth-form { display:none; }
+.auth-form.active-form { display:block;animation:formIn .3s ease; }
+@keyframes formIn { from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none} }
+
+/* Success flash */
+.success-flash { position:fixed;inset:0;z-index:9999;background:rgba(14,11,20,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;opacity:0;pointer-events:none;transition:opacity .4s; }
+.success-flash.show { opacity:1;pointer-events:all; }
+.success-ring { width:80px;height:80px;border-radius:50%;border:2px solid var(--emerald);display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 0 40px rgba(16,185,129,.3);animation:rP 2s ease-in-out infinite; }
+@keyframes rP { 0%,100%{box-shadow:0 0 40px rgba(16,185,129,.3)}50%{box-shadow:0 0 70px rgba(16,185,129,.6)} }
+.success-msg { font-size:1.2rem;font-weight:800;color:var(--text-pri); }
+.success-sub { font-family:var(--font-mono);font-size:.72rem;color:var(--text-sec); }
+
+/* ════════════════════════════════════
+   DASHBOARD
+════════════════════════════════════ */
+.card-os { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-card);padding:1.5rem;position:relative;z-index:1;transition:border-color .25s,box-shadow .25s; }
+.card-os:hover { border-color:rgba(139,92,246,.22); }
+
+.navbar { background:rgba(14,11,20,0.94)!important;backdrop-filter:blur(28px) saturate(1.5);border-bottom:1px solid var(--border);padding:.8rem 0;position:sticky;top:0;z-index:1000; }
+.logo-wrap { display:flex;align-items:center;gap:13px;text-decoration:none; }
+.logo-icon { width:42px;height:42px;flex-shrink:0; }
+.logo-icon svg { width:42px;height:42px; }
+.logo-text-main { font-family:var(--font-display);font-weight:800;font-size:1.45rem;letter-spacing:-.04em;color:var(--text-pri);line-height:1; }
+.logo-text-sub { font-family:var(--font-mono);font-size:.58rem;color:var(--violet-lite);letter-spacing:.18em;margin-top:3px;text-transform:uppercase; }
+.nav-link-custom { display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:600;color:var(--text-sec)!important;padding:.42rem .95rem!important;border-radius:9px;border:1px solid transparent;transition:all .2s;letter-spacing:.01em;white-space:nowrap; }
+.nav-link-custom:hover { color:var(--violet-lite)!important;background:rgba(139,92,246,.07);border-color:rgba(139,92,246,.2); }
+.nav-link-custom.active { color:var(--gold)!important;background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25); }
+.nav-link-custom .nav-dot { width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0;transition:opacity .2s; }
+.nav-link-custom.active .nav-dot { opacity:1; }
+.navbar-toggler { border:1px solid var(--border)!important;padding:5px 10px; }
+.navbar-toggler-icon { background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(167,139,250,0.9)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")!important; }
+
+.nav-user { display:flex;align-items:center;gap:9px;padding:.38rem .8rem;border-radius:10px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);cursor:pointer;transition:all .2s; }
+.nav-user:hover { background:rgba(139,92,246,.14); }
+.nav-av { width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(139,92,246,.3),rgba(245,158,11,.2));display:flex;align-items:center;justify-content:center;font-size:.8rem; }
+.nav-uname { font-family:var(--font-mono);font-size:.68rem;color:var(--text-sec); }
+
+.logout-btn { font-family:var(--font-mono);font-size:.65rem;color:var(--rose);background:rgba(244,63,94,.07);border:1px solid rgba(244,63,94,.2);padding:.3rem .8rem;border-radius:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px; }
+.logout-btn:hover { background:rgba(244,63,94,.15); }
+
+.main-wrap { padding:2rem 0 4rem;position:relative;z-index:1; }
+.page { display:none;animation:pgFade .3s ease; }
+.page.active { display:block; }
+@keyframes pgFade { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none} }
+
+.dash-hero { background:linear-gradient(135deg,rgba(139,92,246,.08) 0%,rgba(245,158,11,.05) 100%);border:1px solid rgba(139,92,246,.18);border-radius:22px;padding:2.2rem 2.8rem;margin-bottom:2rem;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem; }
+.dash-hero::before { content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%,rgba(245,158,11,.06),transparent);pointer-events:none; }
+.dash-hero::after { content:'₹';font-family:var(--font-display);font-size:14rem;font-weight:800;position:absolute;right:-20px;top:-40px;color:rgba(245,158,11,.04);line-height:1;pointer-events:none; }
+.hero-left { flex:1;min-width:200px; }
+.hero-greeting { font-size:1.8rem;font-weight:800;letter-spacing:-.03em;line-height:1.15;background:linear-gradient(135deg,var(--text-pri) 30%,var(--gold-lite));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+.hero-date { font-family:var(--font-mono);font-size:.72rem;color:var(--text-sec);margin-top:5px;letter-spacing:.08em; }
+.hero-tag { display:inline-flex;align-items:center;gap:7px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);color:var(--violet-lite);font-family:var(--font-mono);font-size:.65rem;padding:5px 14px;border-radius:20px;margin-top:1rem;letter-spacing:.08em;text-transform:uppercase; }
+.hero-tag-dot { width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald);animation:sPulse 2s ease infinite; }
+@keyframes sPulse { 0%,100%{opacity:1}50%{opacity:.35} }
+
+.metrics-flex { display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap; }
+.metric-card { flex:1;min-width:170px;border-radius:var(--radius-card);padding:1.4rem 1.3rem;position:relative;overflow:hidden;border:1px solid;transition:transform .25s,box-shadow .25s;display:flex;flex-direction:column;gap:.5rem; }
+.metric-card:hover { transform:translateY(-4px);box-shadow:0 16px 40px rgba(0,0,0,.4); }
+.mc-income  { background:linear-gradient(145deg,#0d1a12,#142210);border-color:rgba(16,185,129,.22); }
+.mc-expense { background:linear-gradient(145deg,#1a0d10,#220a10);border-color:rgba(244,63,94,.22); }
+.mc-savings { background:linear-gradient(145deg,#12101e,#1a1530);border-color:rgba(139,92,246,.22); }
+.mc-count   { background:linear-gradient(145deg,#1a150a,#241d0a);border-color:rgba(245,158,11,.22); }
+.mc-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem; }
+.mc-label { font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-sec); }
+.mc-value { font-family:var(--font-display);font-size:1.7rem;font-weight:800;line-height:1;letter-spacing:-.03em; }
+.mc-sub { font-size:.72rem;color:var(--text-dim);font-family:var(--font-mono); }
+.mc-glyph { position:absolute;right:14px;top:14px;font-size:3.2rem;opacity:.05;line-height:1; }
+.mc-trend { display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:.62rem;padding:2px 8px;border-radius:6px; }
+.mc-trend.up   { background:rgba(16,185,129,.1);color:var(--emerald); }
+.mc-trend.down { background:rgba(244,63,94,.1);color:var(--rose); }
+
+.sec-hd { display:flex;align-items:center;gap:10px;margin-bottom:1.3rem; }
+.sec-hd-bar { width:3px;height:16px;border-radius:2px;flex-shrink:0; }
+.sec-hd-title { font-family:var(--font-mono);font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase; }
+.sec-hd-count { font-family:var(--font-mono);font-size:.65rem;color:var(--text-dim);margin-left:auto; }
+
+.os-input { background:rgba(255,255,255,.04)!important;border:1px solid rgba(139,92,246,.18)!important;color:var(--text-pri)!important;border-radius:var(--radius-sm)!important;font-family:var(--font-mono)!important;font-size:.82rem!important;padding:.55rem .9rem!important;transition:all .2s; }
+.os-input:focus { background:rgba(139,92,246,.07)!important;border-color:var(--violet)!important;box-shadow:0 0 0 3px rgba(139,92,246,.15)!important;outline:none!important; }
+.os-input::placeholder { color:var(--text-dim)!important; }
+.os-input option { background:var(--bg-card);color:var(--text-pri); }
+.os-label { font-family:var(--font-mono);font-size:.63rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-sec);margin-bottom:5px;display:block; }
+
+.btn-neon { background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(245,158,11,.12));border:1px solid rgba(139,92,246,.4);color:var(--violet-lite);padding:.62rem 1.5rem;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:.75rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .25s;display:inline-flex;align-items:center;gap:8px;text-transform:uppercase; }
+.btn-neon:hover { background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(245,158,11,.2));box-shadow:0 0 24px rgba(139,92,246,.25),0 6px 20px rgba(0,0,0,.3);transform:translateY(-1px);color:var(--gold-lite); }
+.btn-neon-sm { background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.25);color:var(--rose);padding:.24rem .6rem;border-radius:7px;font-size:.7rem;cursor:pointer;transition:all .2s; }
+.btn-neon-sm:hover { background:rgba(244,63,94,.2); }
+
+.tx-row { display:flex;align-items:center;gap:13px;padding:.75rem 1rem;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04);border-radius:13px;margin-bottom:7px;transition:all .2s; }
+.tx-row:hover { background:rgba(139,92,246,.05);border-color:var(--border); }
+.tx-emoji { font-size:1.25rem;width:38px;text-align:center;flex-shrink:0; }
+.tx-info { flex:1;min-width:0; }
+.tx-name { font-size:.87rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.tx-meta { font-family:var(--font-mono);font-size:.65rem;color:var(--text-sec);margin-top:2px; }
+.tx-badge { font-family:var(--font-mono);font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:6px;white-space:nowrap; }
+.tx-badge.inc { background:rgba(16,185,129,.1);color:var(--emerald);border:1px solid rgba(16,185,129,.2); }
+.tx-badge.exp { background:rgba(244,63,94,.1);color:var(--rose);border:1px solid rgba(244,63,94,.2); }
+
+.alert-neon { background:linear-gradient(90deg,rgba(245,158,11,.1),rgba(244,63,94,.07));border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:.75rem 1rem;font-size:.8rem;color:var(--gold);display:flex;align-items:center;gap:9px;margin-bottom:8px;animation:aGlow 2.5s ease-in-out infinite alternate; }
+@keyframes aGlow { from{box-shadow:0 0 8px rgba(245,158,11,.08)}to{box-shadow:0 0 20px rgba(245,158,11,.22)} }
+
+.bud-row { margin-bottom:1.1rem; }
+.bud-hd { display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px; }
+.bud-cat { font-size:.84rem;font-weight:600; }
+.bud-amt { font-family:var(--font-mono);font-size:.68rem;color:var(--text-sec); }
+.bud-track { height:6px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden; }
+.bud-fill { height:100%;border-radius:99px;transition:width .8s cubic-bezier(.34,1.56,.64,1);position:relative; }
+.bud-fill::after { content:'';position:absolute;right:0;top:0;bottom:0;width:5px;background:rgba(255,255,255,.45);border-radius:99px;filter:blur(2px); }
+
+.chart-box { position:relative; }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-thumb { background:rgba(139,92,246,.2);border-radius:4px; }
+
+.chat-wrap { background:rgba(14,11,20,.8);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden; }
+.chat-header { background:rgba(139,92,246,.07);border-bottom:1px solid var(--border);padding:1.1rem 1.4rem;display:flex;align-items:center;gap:13px; }
+.chat-avatar { width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(245,158,11,.15));border:1px solid rgba(139,92,246,.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem; }
+.chat-status { width:8px;height:8px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald);animation:sPulse 2s ease infinite; }
+.chat-messages { height:360px;overflow-y:auto;padding:1.3rem;display:flex;flex-direction:column;gap:13px;scroll-behavior:smooth; }
+.chat-messages::-webkit-scrollbar { width:3px; }
+.chat-messages::-webkit-scrollbar-thumb { background:rgba(139,92,246,.2); }
+.bubble { max-width:82%;animation:bIn .2s ease; }
+@keyframes bIn { from{opacity:0;transform:scale(.97) translateY(4px)}to{opacity:1;transform:none} }
+.bubble.user { margin-left:auto; }
+.bub-label { font-family:var(--font-mono);font-size:.6rem;color:var(--text-dim);margin-bottom:4px;letter-spacing:.06em; }
+.bubble.user .bub-label { text-align:right;color:rgba(167,139,250,.5); }
+.bub-body { padding:.75rem 1.05rem;border-radius:14px;font-size:.85rem;line-height:1.7; }
+.bubble.user .bub-body { background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(245,158,11,.1));border:1px solid rgba(139,92,246,.28);border-bottom-right-radius:4px; }
+.bubble.ai .bub-body { background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-bottom-left-radius:4px; }
+.typing-anim { display:flex;gap:5px;align-items:center;padding:4px 0; }
+.typing-anim span { width:6px;height:6px;border-radius:50%;background:var(--violet-lite);animation:tDot 1.3s ease infinite;opacity:.6; }
+.typing-anim span:nth-child(2){animation-delay:.2s}.typing-anim span:nth-child(3){animation-delay:.4s}
+@keyframes tDot { 0%,60%,100%{transform:translateY(0);opacity:.6}30%{transform:translateY(-7px);opacity:1} }
+.chat-footer { padding:1rem 1.3rem;border-top:1px solid var(--border); }
+.chat-input-row { display:flex;gap:8px;align-items:center; }
+.chat-input-row .os-input { flex:1; }
+.send-btn { width:42px;height:42px;background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(245,158,11,.15));border:1px solid rgba(139,92,246,.35);border-radius:11px;color:var(--violet-lite);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s; }
+.send-btn:hover { box-shadow:0 0 20px rgba(139,92,246,.3);transform:scale(1.06); }
+.quick-chips { display:flex;flex-wrap:wrap;gap:6px;margin-top:10px; }
+.chip { font-family:var(--font-mono);font-size:.65rem;padding:4px 12px;border-radius:20px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);color:var(--gold);cursor:pointer;transition:all .2s;letter-spacing:.03em; }
+.chip:hover { background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.4); }
+
+.insights-flex { display:flex;gap:.85rem;flex-wrap:wrap;margin-top:1.5rem; }
+.insight-card { flex:1;min-width:140px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.055);border-radius:14px;padding:1.1rem;text-align:center;transition:all .2s; }
+.insight-card:hover { background:rgba(139,92,246,.05);border-color:var(--border); }
+.insight-emoji { font-size:1.7rem;margin-bottom:8px; }
+.insight-val { font-family:var(--font-display);font-size:1.25rem;font-weight:800;line-height:1;margin-bottom:4px;letter-spacing:-.03em; }
+.insight-lbl { font-family:var(--font-mono);font-size:.6rem;color:var(--text-sec);letter-spacing:.08em;text-transform:uppercase; }
+
+.charts-flex { display:flex;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap; }
+.charts-flex .chart-main { flex:2;min-width:280px; }
+.charts-flex .chart-side { flex:1.2;min-width:220px; }
+
+@media(max-width:900px) { .panel-left{display:none;} .panel-right{min-width:unset;padding:2rem 1.5rem;} }
+@media(max-width:768px) { .mc-value{font-size:1.3rem;} .dash-hero{padding:1.4rem 1.5rem;} .hero-greeting{font-size:1.3rem;} .chat-messages{height:280px;} .metrics-flex{gap:.65rem;} .metric-card{min-width:140px;} }
+@media(max-width:520px) { .metric-card{min-width:calc(50% - .5rem);} }
+</style>
+</head>
+<body>
+
+<!-- Ambient glows (shared) -->
+<div class="glow-blob gb1"></div>
+<div class="glow-blob gb2"></div>
+<div class="glow-blob gb3"></div>
+
+<!-- ══════════════════════════════════
+     SUCCESS FLASH (shared)
+══════════════════════════════════ -->
+<div class="success-flash" id="successFlash">
+  <div class="success-ring">✓</div>
+  <div class="success-msg" id="successMsg">Welcome back!</div>
+  <div class="success-sub">// Loading your Command Center...</div>
+</div>
+
+<!-- ══════════════════════════════════
+     SCREEN 1 — LOGIN
+══════════════════════════════════ -->
+<div id="screen-login">
+  <div class="split">
+
+    <!-- LEFT brand panel -->
+    <div class="panel-left">
+      <div class="orbit-wrap">
+        <div class="orbit o1"></div>
+        <div class="orbit o2"></div>
+        <div class="orbit o3"></div>
+        <div class="center-orb">₹</div>
+      </div>
+      <div class="stat-float"><div class="sf-label">Net Savings</div><div class="sf-value" style="color:var(--emerald)">+₹4,820</div></div>
+      <div class="stat-float"><div class="sf-label">Savings Rate</div><div class="sf-value" style="color:var(--violet-lite)">38.2%</div></div>
+      <div class="stat-float"><div class="sf-label">Budget Health</div><div class="sf-value" style="color:var(--gold)">92 / 100</div></div>
+
+      <div class="panel-left-top">
+        <div class="brand-logo">
+          <div class="brand-icon">
+            <svg viewBox="0 0 30 30" fill="none"><path d="M4 22L10 13L16 18L22 6" stroke="#a78bfa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="22" cy="6" r="3" fill="#f59e0b" opacity=".9"/><circle cx="4" cy="22" r="2" fill="#8b5cf6" opacity=".7"/></svg>
+          </div>
+          <div>
+            <div class="brand-name">WealthOS</div>
+            <div class="brand-tagline">// Finance Command Center</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-left-bot" style="padding-bottom:1rem">
+        <div class="hero-heading"><span class="grad">Control your</span><br><span class="grad">financial future</span></div>
+        <div class="hero-sub">A luxury-grade personal finance system built for those who take money seriously.</div>
+        <div class="feat-list">
+          <div class="feat-item"><span class="feat-dot"></span>Real-time income & expense tracking</div>
+          <div class="feat-item"><span class="feat-dot"></span>AI-powered financial advisor</div>
+          <div class="feat-item"><span class="feat-dot"></span>Smart budget alerts & insights</div>
+          <div class="feat-item"><span class="feat-dot"></span>Interactive analytics dashboards</div>
+        </div>
+        <div class="testimonial" style="margin-top:1.8rem">
+          "WealthOS completely transformed how I think about money. My savings rate went from 8% to 34% in 4 months."
+          <div class="testi-author">
+            <div class="testi-av">😊</div>
+            <div><div class="testi-name">VALLEPU BALAJI</div><div class="testi-role">// Software Engineer, Bengaluru</div></div>
+            <div><div class="testi-name">BHAVAN R</div><div class="testi-role">// Software Engineer, Bengaluru</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT panel — Login + Signup tabs -->
+    <div class="panel-right">
+      <div class="login-box">
+
+        <!-- ── TAB SWITCHER ── -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+          <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Create Account</button>
+          <div class="tab-slider" id="tabSlider"></div>
+        </div>
+
+        <!-- ══ SIGN IN FORM ══ -->
+        <div id="formLogin" class="auth-form active-form">
+          <div class="social-row">
+            <button class="soc-btn" onclick="socialLogin('Google')"><span>🌐</span> Google</button>
+            <button class="soc-btn" onclick="socialLogin('Apple')"><span>🍎</span> Apple</button>
+            <button class="soc-btn" onclick="socialLogin('GitHub')"><span>⚡</span> GitHub</button>
+          </div>
+          <div class="divider"><div class="div-line"></div><div class="div-text">OR SIGN IN WITH EMAIL</div><div class="div-line"></div></div>
+
+          <div class="error-msg" id="errorMsg"><span>⚠</span><span id="errorText">Invalid credentials.</span></div>
+
+          <div class="field-group">
+            <label class="f-label">Email Address</label>
+            <div class="f-wrap">
+              <span class="f-icon">✉</span>
+              <input class="f-input" id="emailInput" type="email" placeholder="your@email.com" autocomplete="email">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="f-label">Password</label>
+            <div class="f-wrap">
+              <span class="f-icon">🔒</span>
+              <input class="f-input" id="passInput" type="password" placeholder="••••••••••" autocomplete="current-password" style="padding-right:2.8rem">
+              <button class="pass-toggle" onclick="togglePass()" id="passToggle">👁</button>
+            </div>
+          </div>
+          <div class="row-opts">
+            <label class="remember" onclick="toggleChk()">
+              <div class="custom-chk" id="remChk"></div>
+              <span class="remember-label">Remember me</span>
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+          <button class="btn-submit" id="loginBtn" onclick="doLogin()">
+            <span class="btn-text">ACCESS COMMAND CENTER →</span>
+          </button>
+          <div class="signup-row">New to WealthOS? <a href="#" onclick="switchTab('signup');return false;">Create free account</a></div>
+        </div>
+
+        <!-- ══ SIGN UP FORM ══ -->
+        <div id="formSignup" class="auth-form">
+          <div class="social-row">
+            <button class="soc-btn" onclick="socialLogin('Google')"><span>🌐</span> Google</button>
+            <button class="soc-btn" onclick="socialLogin('Apple')"><span>🍎</span> Apple</button>
+            <button class="soc-btn" onclick="socialLogin('GitHub')"><span>⚡</span> GitHub</button>
+          </div>
+          <div class="divider"><div class="div-line"></div><div class="div-text">OR REGISTER WITH EMAIL</div><div class="div-line"></div></div>
+
+          <div class="error-msg" id="regErrorMsg"><span>⚠</span><span id="regErrorText">Please fill all fields.</span></div>
+          <div class="success-msg-inline" id="regSuccessMsg"><span>✓</span><span>Account created! Signing you in...</span></div>
+
+          <div style="display:flex;gap:.8rem;flex-wrap:wrap">
+            <div class="field-group" style="flex:1;min-width:120px">
+              <label class="f-label">First Name</label>
+              <div class="f-wrap">
+                <span class="f-icon">👤</span>
+                <input class="f-input" id="regFirst" type="text" placeholder="Priya">
+              </div>
+            </div>
+            <div class="field-group" style="flex:1;min-width:120px">
+              <label class="f-label">Last Name</label>
+              <div class="f-wrap">
+                <span class="f-icon">👤</span>
+                <input class="f-input" id="regLast" type="text" placeholder="Sharma">
+              </div>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="f-label">Email Address</label>
+            <div class="f-wrap">
+              <span class="f-icon">✉</span>
+              <input class="f-input" id="regEmail" type="email" placeholder="your@email.com" autocomplete="email">
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="f-label">Password</label>
+            <div class="f-wrap">
+              <span class="f-icon">🔒</span>
+              <input class="f-input" id="regPass" type="password" placeholder="Min. 6 characters" style="padding-right:2.8rem">
+              <button class="pass-toggle" onclick="toggleRegPass()" id="regPassToggle">👁</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="f-label">Confirm Password</label>
+            <div class="f-wrap">
+              <span class="f-icon">🔑</span>
+              <input class="f-input" id="regConfirm" type="password" placeholder="Repeat password">
+            </div>
+          </div>
+
+          <!-- Password strength bar -->
+          <div class="pwd-strength-wrap" id="pwdStrengthWrap" style="display:none;margin-bottom:1rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <span style="font-family:var(--font-mono);font-size:.6rem;color:var(--text-sec)">Password strength</span>
+              <span style="font-family:var(--font-mono);font-size:.6rem" id="pwdStrengthLabel">—</span>
+            </div>
+            <div style="height:4px;background:rgba(255,255,255,.06);border-radius:99px;overflow:hidden">
+              <div id="pwdStrengthBar" style="height:100%;border-radius:99px;transition:width .3s,background .3s;width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Terms -->
+          <div style="display:flex;align-items:flex-start;gap:9px;margin-bottom:1.2rem;cursor:pointer" onclick="toggleTerms()">
+            <div class="custom-chk" id="termsChk" style="margin-top:1px;flex-shrink:0"></div>
+            <span style="font-family:var(--font-mono);font-size:.67rem;color:var(--text-sec);line-height:1.5">I agree to the <a href="#" style="color:var(--violet-lite);text-decoration:none">Terms of Service</a> and <a href="#" style="color:var(--violet-lite);text-decoration:none">Privacy Policy</a></span>
+          </div>
+
+          <button class="btn-submit" id="regBtn" onclick="doRegister()">
+            <span class="btn-text">CREATE FREE ACCOUNT →</span>
+          </button>
+          <div class="signup-row">Already have an account? <a href="#" onclick="switchTab('login');return false;">Sign in</a></div>
+        </div>
+
+        <!-- Trust badges (shared) -->
+        <div class="trust-row">
+          <div class="trust-item"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0L1 3v5c0 3.5 2.9 6.7 7 8 4.1-1.3 7-4.5 7-8V3L8 0z"/></svg>256-bit SSL</div>
+          <div class="trust-item"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm0 9.5a5 5 0 01-3.84-1.81C5.17 10.12 6.55 9.5 8 9.5s2.83.62 3.84 1.69A5 5 0 018 12.5z"/></svg>2FA Ready</div>
+          <div class="trust-item"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M2.5 3A1.5 1.5 0 001 4.5v.793l6.598 3.185a.75.75 0 00.652 0L15 5.293V4.5A1.5 1.5 0 0013.5 3h-11z"/><path d="M15 6.954L8.978 9.86a2.25 2.25 0 01-1.956 0L1 6.954V11.5A1.5 1.5 0 002.5 13h11a1.5 1.5 0 001.5-1.5V6.954z"/></svg>No spam ever</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div><!-- /screen-login -->
+
+<!-- ══════════════════════════════════
+     SCREEN 2 — DASHBOARD
+══════════════════════════════════ -->
+<div id="screen-dashboard">
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="logo-wrap navbar-brand" href="#" onclick="doLogout();return false;" title="Back to Home">
+        <div class="logo-icon">
+          <svg viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="42" height="42" rx="12" fill="url(#dlg)"/>
+            <path d="M10 30L17 19L23 25L30 11" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="30" cy="11" r="3.5" fill="#f59e0b" opacity=".9"/>
+            <circle cx="10" cy="30" r="2.5" fill="#8b5cf6" opacity=".7"/>
+            <defs><linearGradient id="dlg" x1="0" y1="0" x2="42" y2="42"><stop offset="0%" stop-color="#13101c"/><stop offset="100%" stop-color="#1a1625"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div>
+          <div class="logo-text-main">WealthOS</div>
+          <div class="logo-text-sub">// Finance Command Center</div>
+        </div>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navMain">
+        <ul class="navbar-nav ms-auto align-items-lg-center gap-1">
+          <li class="nav-item"><a class="nav-link-custom active" href="#" onclick="goto('dashboard',this)"><span class="nav-dot"></span><i class="bi bi-grid-1x2"></i> Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link-custom" href="#" onclick="goto('transactions',this)"><span class="nav-dot"></span><i class="bi bi-arrow-left-right"></i> Transactions</a></li>
+          <li class="nav-item"><a class="nav-link-custom" href="#" onclick="goto('budget',this)"><span class="nav-dot"></span><i class="bi bi-wallet2"></i> Budget</a></li>
+          <li class="nav-item"><a class="nav-link-custom" href="#" onclick="goto('analytics',this)"><span class="nav-dot"></span><i class="bi bi-graph-up-arrow"></i> Analytics</a></li>
+          <li class="nav-item"><a class="nav-link-custom" href="#" onclick="goto('advisor',this)"><span class="nav-dot"></span><i class="bi bi-robot"></i> AI Advisor</a></li>
+          <li class="nav-item ms-2">
+            <div class="nav-user">
+              <div class="nav-av">👤</div>
+              <div class="nav-uname" id="navUsername">User</div>
+            </div>
+          </li>
+          <li class="nav-item ms-1">
+            <button class="logout-btn" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> Logout</button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-wrap">
+  <div class="container">
+
+    <!-- ░ DASHBOARD ░ -->
+    <div class="page active" id="page-dashboard">
+      <div class="dash-hero">
+        <div class="hero-left">
+          <div class="hero-greeting" id="heroGreeting">Financial Overview</div>
+          <div class="hero-date" id="heroDate">—</div>
+          <div class="hero-tag"><span class="hero-tag-dot"></span> System Online — All Data Live</div>
+        </div>
+        <div id="alertsArea" style="flex:1;min-width:200px"></div>
+      </div>
+
+      <div class="metrics-flex">
+        <div class="metric-card mc-income">
+          <div class="mc-glyph">↓</div>
+          <div class="mc-icon" style="background:rgba(16,185,129,.12)"><i class="bi bi-arrow-down-circle-fill" style="color:var(--emerald)"></i></div>
+          <div class="mc-label">Total Income</div>
+          <div class="mc-value" id="mIncome" style="color:var(--emerald)">₹0</div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><div class="mc-sub">This month</div><div class="mc-trend up" id="mIncomeTrend">↑ 0%</div></div>
+        </div>
+        <div class="metric-card mc-expense">
+          <div class="mc-glyph">↑</div>
+          <div class="mc-icon" style="background:rgba(244,63,94,.12)"><i class="bi bi-arrow-up-circle-fill" style="color:var(--rose)"></i></div>
+          <div class="mc-label">Total Expenses</div>
+          <div class="mc-value" id="mExpense" style="color:var(--rose)">₹0</div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><div class="mc-sub">This month</div><div class="mc-trend down" id="mExpenseTrend">↓ 0%</div></div>
+        </div>
+        <div class="metric-card mc-savings">
+          <div class="mc-glyph">⬡</div>
+          <div class="mc-icon" style="background:rgba(139,92,246,.12)"><i class="bi bi-piggy-bank-fill" style="color:var(--violet-lite)"></i></div>
+          <div class="mc-label">Net Savings</div>
+          <div class="mc-value" id="mSavings" style="color:var(--violet-lite)">₹0</div>
+          <div class="mc-sub" id="mSavPct">Savings rate</div>
+        </div>
+        <div class="metric-card mc-count">
+          <div class="mc-glyph">#</div>
+          <div class="mc-icon" style="background:rgba(245,158,11,.12)"><i class="bi bi-receipt-cutoff" style="color:var(--gold)"></i></div>
+          <div class="mc-label">Transactions</div>
+          <div class="mc-value" id="mCount" style="color:var(--gold)">0</div>
+          <div class="mc-sub">All time</div>
+        </div>
+      </div>
+
+      <div class="charts-flex">
+        <div class="card-os chart-main">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--violet)"></div><span class="sec-hd-title" style="color:var(--violet-lite)">Income vs Expenses</span><span class="sec-hd-count">Last 6 Months</span></div>
+          <div class="chart-box" style="height:230px"><canvas id="barChart"></canvas></div>
+        </div>
+        <div class="card-os chart-side">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--gold)"></div><span class="sec-hd-title" style="color:var(--gold)">Spending Split</span></div>
+          <div class="chart-box" style="height:175px"><canvas id="donutChart"></canvas></div>
+          <div id="donutLegend" class="mt-2" style="display:flex;flex-wrap:wrap;gap:5px;font-size:.68rem;"></div>
+        </div>
+      </div>
+
+      <div class="card-os">
+        <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--emerald)"></div><span class="sec-hd-title" style="color:var(--emerald)">Recent Transactions</span><span class="sec-hd-count" id="recentCount">0 shown</span></div>
+        <div id="recentList"><div class="text-center py-4" style="color:var(--text-dim);font-family:var(--font-mono);font-size:.75rem">[ NO DATA — ADD A TRANSACTION ]</div></div>
+      </div>
+    </div>
+
+    <!-- ░ TRANSACTIONS ░ -->
+    <div class="page" id="page-transactions">
+      <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start">
+        <div class="card-os" style="flex:1;min-width:260px;max-width:380px">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--emerald)"></div><span class="sec-hd-title" style="color:var(--emerald)">New Entry</span></div>
+          <div class="mb-3"><label class="os-label">Type</label><select class="os-input form-select" id="txType"><option value="expense">⬆ Expense</option><option value="income">⬇ Income</option></select></div>
+          <div class="mb-3"><label class="os-label">Amount (INR)</label><input class="os-input form-control" id="txAmount" type="number" placeholder="0.00" min="0" step="0.01"></div>
+          <div class="mb-3"><label class="os-label">Category</label>
+            <select class="os-input form-select" id="txCat">
+              <option>🍔 Food & Dining</option><option>🚗 Transport</option><option>🏠 Housing & Rent</option>
+              <option>🎬 Entertainment</option><option>💪 Health & Fitness</option><option>🛍️ Shopping</option>
+              <option>📚 Education</option><option>⚡ Utilities</option><option>💼 Salary</option>
+              <option>💻 Freelance</option><option>📈 Investment</option><option>📌 Other</option>
+            </select></div>
+          <div class="mb-3"><label class="os-label">Date</label><input class="os-input form-control" id="txDate" type="date"></div>
+          <div class="mb-4"><label class="os-label">Description</label><input class="os-input form-control" id="txNote" type="text" placeholder="Optional note..."></div>
+          <button class="btn-neon w-100" onclick="addTx()"><i class="bi bi-plus-lg"></i> LOG TRANSACTION</button>
+        </div>
+        <div class="card-os" style="flex:2;min-width:280px">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--violet)"></div><span class="sec-hd-title" style="color:var(--violet-lite)">Transaction Ledger</span><span class="sec-hd-count" id="allTxCount">0 entries</span></div>
+          <div id="allTxList" style="max-height:560px;overflow-y:auto;padding-right:4px"><div class="text-center py-4" style="color:var(--text-dim);font-family:var(--font-mono);font-size:.75rem">[ LEDGER EMPTY ]</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ░ BUDGET ░ -->
+    <div class="page" id="page-budget">
+      <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start">
+        <div class="card-os" style="flex:1;min-width:240px;max-width:360px">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--violet-lite)"></div><span class="sec-hd-title" style="color:var(--violet-lite)">Budget Allocation</span></div>
+          <div id="budgetInputs"></div>
+          <button class="btn-neon w-100 mt-3" onclick="saveBudgets()"><i class="bi bi-floppy2-fill"></i> SAVE BUDGETS</button>
+        </div>
+        <div style="flex:2;min-width:280px;display:flex;flex-direction:column;gap:1.2rem">
+          <div class="card-os">
+            <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--rose)"></div><span class="sec-hd-title" style="color:var(--rose)">Budget vs Actual</span></div>
+            <div id="budgetBars"></div>
+          </div>
+          <div class="card-os">
+            <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--gold)"></div><span class="sec-hd-title" style="color:var(--gold)">Utilisation Radar</span></div>
+            <div class="chart-box" style="height:220px"><canvas id="radarChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ░ ANALYTICS ░ -->
+    <div class="page" id="page-analytics">
+      <div style="display:flex;gap:1.2rem;margin-bottom:1.2rem;flex-wrap:wrap">
+        <div class="card-os" style="flex:1;min-width:260px">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--violet)"></div><span class="sec-hd-title" style="color:var(--violet-lite)">Spending Trend</span></div>
+          <div class="chart-box" style="height:260px"><canvas id="trendChart"></canvas></div>
+        </div>
+        <div class="card-os" style="flex:1;min-width:260px">
+          <div class="sec-hd"><div class="sec-hd-bar" style="background:var(--gold)"></div><span class="sec-hd-title" style="color:var(--gold)">Category Totals</span></div>
+          <div class="chart-box" style="height:260px"><canvas id="catChart"></canvas></div>
+        </div>
+      </div>
+      <div class="insights-flex" id="insightsRow"></div>
+    </div>
+
+    <!-- ░ AI ADVISOR ░ -->
+    <div class="page" id="page-advisor">
+      <div style="display:flex;justify-content:center">
+        <div style="width:100%;max-width:760px">
+          <div class="chat-wrap">
+            <div class="chat-header">
+              <div class="chat-avatar">🤖</div>
+              <div style="flex:1"><div style="font-weight:700;font-size:.9rem">WealthOS AI Advisor</div><div style="font-family:var(--font-mono);font-size:.62rem;color:var(--text-sec)">Powered by Claude Sonnet</div></div>
+              <div class="chat-status"></div>
+              <div style="font-family:var(--font-mono);font-size:.62rem;color:var(--emerald);margin-left:6px">ONLINE</div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+              <div class="bubble ai"><div class="bub-label">// WEALTHOS AI</div><div class="bub-body">👋 Welcome to WealthOS AI Advisor! I have full access to your financial data and can help you:<br><br>• Analyze spending patterns &amp; budget health<br>• Suggest personalized savings strategies<br>• Identify areas to cut costs<br>• Answer any financial question<br><br>What would you like to explore today?</div></div>
+            </div>
+            <div class="chat-footer">
+              <div class="chat-input-row">
+                <input class="os-input form-control" id="chatInput" type="text" placeholder="Ask about your finances..." onkeydown="if(event.key==='Enter')sendChat()">
+                <button class="send-btn" onclick="sendChat()"><i class="bi bi-send-fill"></i></button>
+              </div>
+              <div class="quick-chips" id="quickChips"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+</div><!-- /screen-dashboard -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+/* ═══════════════════════════════════
+   LOGIN LOGIC
+═══════════════════════════════════ */
+let currentUser = null;
+
+/* ── TAB SWITCHER ── */
+function switchTab(tab){
+  const isLogin = tab === 'login';
+  document.getElementById('tabLogin').classList.toggle('active', isLogin);
+  document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+  document.getElementById('tabSlider').classList.toggle('right', !isLogin);
+  document.getElementById('formLogin').classList.toggle('active-form', isLogin);
+  document.getElementById('formSignup').classList.toggle('active-form', !isLogin);
+  // clear errors
+  document.getElementById('errorMsg').classList.remove('show');
+  document.getElementById('regErrorMsg').classList.remove('show');
+  document.getElementById('regSuccessMsg').classList.remove('show');
+}
+
+function togglePass(){
+  const i=document.getElementById('passInput'),t=document.getElementById('passToggle');
+  i.type=i.type==='password'?'text':'password';
+  t.textContent=i.type==='password'?'👁':'🔒';
+}
+function toggleRegPass(){
+  const i=document.getElementById('regPass'),t=document.getElementById('regPassToggle');
+  i.type=i.type==='password'?'text':'password';
+  t.textContent=i.type==='password'?'👁':'🔒';
+}
+function toggleChk(){ document.getElementById('remChk').classList.toggle('checked'); }
+function toggleTerms(){ document.getElementById('termsChk').classList.toggle('checked'); }
+
+/* ── PASSWORD STRENGTH ── */
+function checkPwdStrength(pwd){
+  let score=0;
+  if(pwd.length>=6) score++;
+  if(pwd.length>=10) score++;
+  if(/[A-Z]/.test(pwd)) score++;
+  if(/[0-9]/.test(pwd)) score++;
+  if(/[^A-Za-z0-9]/.test(pwd)) score++;
+  const levels=[
+    {label:'Too weak',color:'var(--rose)',w:'20%'},
+    {label:'Weak',color:'#fb923c',w:'40%'},
+    {label:'Fair',color:'var(--gold)',w:'60%'},
+    {label:'Strong',color:'var(--emerald)',w:'80%'},
+    {label:'Very strong',color:'#34d399',w:'100%'},
+  ];
+  const l=levels[Math.min(score,4)];
+  document.getElementById('pwdStrengthBar').style.width=l.w;
+  document.getElementById('pwdStrengthBar').style.background=l.color;
+  document.getElementById('pwdStrengthLabel').textContent=l.label;
+  document.getElementById('pwdStrengthLabel').style.color=l.color;
+  document.getElementById('pwdStrengthWrap').style.display='block';
+}
+
+/* ── REGISTER ── */
+function showRegError(msg){
+  const e=document.getElementById('regErrorMsg');
+  document.getElementById('regErrorText').textContent=msg;
+  e.classList.remove('show');void e.offsetWidth;e.classList.add('show');
+}
+function doRegister(){
+  const first=document.getElementById('regFirst').value.trim();
+  const last=document.getElementById('regLast').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPass').value;
+  const confirm=document.getElementById('regConfirm').value;
+  const terms=document.getElementById('termsChk').classList.contains('checked');
+  const btn=document.getElementById('regBtn');
+
+  if(!first){ showRegError('Please enter your first name.'); return; }
+  if(!email||!email.includes('@')){ showRegError('Please enter a valid email address.'); return; }
+  if(!pass||pass.length<6){ showRegError('Password must be at least 6 characters.'); return; }
+  if(pass!==confirm){ showRegError('Passwords do not match.'); return; }
+  if(!terms){ showRegError('Please agree to the Terms of Service.'); return; }
+
+  btn.classList.add('loading');
+  document.getElementById('regErrorMsg').classList.remove('show');
+
+  const uname = (first+' '+last).trim();
+  currentUser = { email, name: uname };
+
+  setTimeout(()=>{
+    btn.classList.remove('loading');
+    document.getElementById('regSuccessMsg').classList.add('show');
+    setTimeout(()=>{
+      document.getElementById('regSuccessMsg').classList.remove('show');
+      document.getElementById('successMsg').textContent=`Welcome, ${first}! 🎉`;
+      document.getElementById('successFlash').classList.add('show');
+      setTimeout(()=>{
+        document.getElementById('successFlash').classList.remove('show');
+        transitionToDashboard(uname);
+      }, 1800);
+    }, 900);
+  }, 1600);
+}
+
+function socialLogin(provider){
+  const btn=event.currentTarget,orig=btn.innerHTML;
+  btn.innerHTML=`<span>⏳</span> Connecting...`;btn.style.opacity='.7';
+  setTimeout(()=>{ btn.innerHTML=orig;btn.style.opacity='1';showError(`${provider} OAuth coming soon. Use email login to demo.`); },1500);
+}
+function showError(msg){
+  const e=document.getElementById('errorMsg');
+  document.getElementById('errorText').textContent=msg;
+  e.classList.remove('show');void e.offsetWidth;e.classList.add('show');
+}
+
+function doLogin(){
+  const email=document.getElementById('emailInput').value.trim();
+  const pass=document.getElementById('passInput').value;
+  const btn=document.getElementById('loginBtn');
+  if(!email||!email.includes('@')){ showError('Please enter a valid email address.'); return; }
+  if(!pass||pass.length<6){ showError('Password must be at least 6 characters.'); return; }
+
+  btn.classList.add('loading');
+  document.getElementById('errorMsg').classList.remove('show');
+
+  // Derive username from email
+  const uname = email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  currentUser = { email, name: uname };
+
+  setTimeout(()=>{
+    btn.classList.remove('loading');
+    // Show success flash
+    document.getElementById('successMsg').textContent=`Welcome back, ${uname}!`;
+    document.getElementById('successFlash').classList.add('show');
+    setTimeout(()=>{
+      document.getElementById('successFlash').classList.remove('show');
+      transitionToDashboard(uname);
+    }, 1800);
+  }, 1600);
+}
+
+function transitionToDashboard(uname){
+  const login=document.getElementById('screen-login');
+  const dash=document.getElementById('screen-dashboard');
+  // Fade out login
+  login.classList.add('fade-out');
+  setTimeout(()=>{
+    login.style.display='none';
+    login.classList.remove('fade-out');
+    dash.style.display='block';
+    dash.classList.add('fade-in');
+    // Update user name in nav
+    document.getElementById('navUsername').textContent = uname || 'User';
+    // Init dashboard
+    document.getElementById('txDate').value=new Date().toISOString().split('T')[0];
+    renderDash(); renderAllTxs(); renderChips();
+    setTimeout(()=>dash.classList.remove('fade-in'),700);
+  }, 500);
+}
+
+function doLogout(){
+  const dash=document.getElementById('screen-dashboard');
+  const login=document.getElementById('screen-login');
+  dash.style.opacity='0'; dash.style.transition='opacity .4s';
+  setTimeout(()=>{
+    dash.style.display='none'; dash.style.opacity='';dash.style.transition='';
+    login.style.display='flex';
+    login.style.opacity='0'; login.style.transition='opacity .4s';
+    // reset login form
+    document.getElementById('emailInput').value='';
+    document.getElementById('passInput').value='';
+    document.getElementById('errorMsg').classList.remove('show');
+    setTimeout(()=>{ login.style.opacity='';login.style.transition=''; },50);
+  },400);
+}
+
+// Enter key on login form
+document.addEventListener('DOMContentLoaded',()=>{
+  ['emailInput','passInput'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+  });
+  ['regFirst','regLast','regEmail','regPass','regConfirm'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('keydown',e=>{ if(e.key==='Enter') doRegister(); });
+  });
+  document.getElementById('regPass')?.addEventListener('input',e=>checkPwdStrength(e.target.value));
+});
+
+/* ═══════════════════════════════════
+   DASHBOARD LOGIC
+═══════════════════════════════════ */
+let txs=[
+  {id:1,type:'income',amount:5200,cat:'💼 Salary',date:'2026-03-01',note:'Monthly salary'},
+  {id:2,type:'expense',amount:1450,cat:'🏠 Housing & Rent',date:'2026-03-02',note:'March rent'},
+  {id:3,type:'expense',amount:295,cat:'🍔 Food & Dining',date:'2026-03-05',note:'Weekly groceries'},
+  {id:4,type:'expense',amount:88,cat:'🚗 Transport',date:'2026-03-07',note:'Fuel'},
+  {id:5,type:'income',amount:850,cat:'💻 Freelance',date:'2026-03-10',note:'Client project'},
+  {id:6,type:'expense',amount:145,cat:'🎬 Entertainment',date:'2026-03-12',note:'Streaming & cinema'},
+  {id:7,type:'expense',amount:230,cat:'🛍️ Shopping',date:'2026-03-14',note:'Clothing haul'},
+  {id:8,type:'expense',amount:65,cat:'💪 Health & Fitness',date:'2026-03-15',note:'Gym membership'},
+  {id:9,type:'expense',amount:115,cat:'⚡ Utilities',date:'2026-03-08',note:'Electricity'},
+  {id:10,type:'income',amount:320,cat:'📈 Investment',date:'2026-03-11',note:'Dividends'},
+  {id:11,type:'expense',amount:180,cat:'🍔 Food & Dining',date:'2026-02-18',note:'Restaurant dinner'},
+  {id:12,type:'income',amount:4900,cat:'💼 Salary',date:'2026-02-01',note:'February salary'},
+  {id:13,type:'expense',amount:1450,cat:'🏠 Housing & Rent',date:'2026-02-02',note:'February rent'},
+  {id:14,type:'expense',amount:320,cat:'🛍️ Shopping',date:'2026-01-20',note:'Electronics'},
+  {id:15,type:'income',amount:5200,cat:'💼 Salary',date:'2026-01-01',note:'January salary'},
+];
+let budgets={'🍔 Food & Dining':400,'🚗 Transport':150,'🏠 Housing & Rent':1500,'🎬 Entertainment':200,'💪 Health & Fitness':120,'🛍️ Shopping':280,'⚡ Utilities':150};
+let nextId=16, apiKey='';
+const charts={};
+
+const fmt=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:0,maximumFractionDigits:0}).format(Math.abs(n));
+const fmtD=n=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2}).format(Math.abs(n));
+const CAT_COLORS={'🍔 Food & Dining':'#f59e0b','🚗 Transport':'#38bdf8','🏠 Housing & Rent':'#10b981','🎬 Entertainment':'#f43f5e','💪 Health & Fitness':'#a78bfa','🛍️ Shopping':'#fb923c','📚 Education':'#34d399','⚡ Utilities':'#818cf8','💼 Salary':'#6ee7b7','💻 Freelance':'#7dd3fc','📈 Investment':'#fcd34d','📌 Other':'#6b7280'};
+const getMonth=d=>{const x=new Date(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`;};
+const curMonth=()=>{const n=new Date();return`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;};
+const getMonthTxs=()=>txs.filter(t=>getMonth(t.date)===curMonth());
+const totalInc=arr=>arr.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+const totalExp=arr=>arr.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+const destroyChart=k=>{if(charts[k]){charts[k].destroy();delete charts[k];}};
+
+function goHome(e){
+  e.preventDefault();
+  // Click the Dashboard nav link to properly highlight it + render
+  const dashLink = document.querySelector('.nav-link-custom[onclick*="dashboard"]');
+  goto('dashboard', dashLink);
+}
+
+function goto(name,el){
+  event.preventDefault();
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-link-custom').forEach(l=>l.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el)el.classList.add('active');
+  if(name==='dashboard')renderDash();
+  if(name==='analytics')renderAnalytics();
+  if(name==='budget')renderBudgetPage();
+  if(name==='advisor')renderChips();
+  const nav=document.getElementById('navMain');
+  if(nav.classList.contains('show'))bootstrap.Collapse.getInstance(nav)?.hide();
+}
+
+function renderDash(){
+  const now=new Date();
+  document.getElementById('heroGreeting').textContent=`Good ${now.getHours()<12?'Morning':now.getHours()<17?'Afternoon':'Evening'}${currentUser?', '+currentUser.name.split(' ')[0]:''} — Overview`;
+  document.getElementById('heroDate').textContent=now.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const mtx=getMonthTxs(),inc=totalInc(mtx),exp=totalExp(mtx),sav=inc-exp;
+  document.getElementById('mIncome').textContent=fmt(inc);
+  document.getElementById('mExpense').textContent=fmt(exp);
+  document.getElementById('mSavings').textContent=fmt(sav);
+  document.getElementById('mSavings').style.color=sav>=0?'var(--violet-lite)':'var(--rose)';
+  document.getElementById('mSavPct').textContent=inc>0?Math.round(sav/inc*100)+'% savings rate':'—';
+  document.getElementById('mCount').textContent=txs.length;
+
+  const prev=new Date();prev.setMonth(prev.getMonth()-1);
+  const prevKey=`${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`;
+  const prevTx=txs.filter(t=>getMonth(t.date)===prevKey);
+  const prevInc=totalInc(prevTx),prevExp=totalExp(prevTx);
+  const incChg=prevInc>0?Math.round((inc-prevInc)/prevInc*100):0;
+  const expChg=prevExp>0?Math.round((exp-prevExp)/prevExp*100):0;
+  document.getElementById('mIncomeTrend').textContent=(incChg>=0?'↑':'↓')+Math.abs(incChg)+'%';
+  document.getElementById('mIncomeTrend').className='mc-trend '+(incChg>=0?'up':'down');
+  document.getElementById('mExpenseTrend').textContent=(expChg<=0?'↓':'↑')+Math.abs(expChg)+'%';
+  document.getElementById('mExpenseTrend').className='mc-trend '+(expChg<=0?'up':'down');
+
+  const area=document.getElementById('alertsArea');area.innerHTML='';
+  Object.entries(budgets).forEach(([cat,bud])=>{
+    const spent=mtx.filter(t=>t.type==='expense'&&t.cat===cat).reduce((s,t)=>s+t.amount,0);
+    if(spent>bud)area.innerHTML+=`<div class="alert-neon"><i class="bi bi-exclamation-triangle-fill"></i><strong>Over budget:</strong>&nbsp;${cat} — Spent ${fmt(spent)} of ${fmt(bud)}</div>`;
+  });
+
+  const l6=last6Months();
+  destroyChart('bar');
+  charts['bar']=new Chart(document.getElementById('barChart'),{type:'bar',data:{labels:l6.labels,datasets:[
+    {label:'Income',data:l6.income,backgroundColor:'rgba(16,185,129,.5)',borderRadius:7,borderSkipped:false},
+    {label:'Expenses',data:l6.expenses,backgroundColor:'rgba(244,63,94,.5)',borderRadius:7,borderSkipped:false}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b84a8',font:{size:11,family:'JetBrains Mono'}}}},scales:{x:{ticks:{color:'#8b84a8',font:{size:10},maxRotation:0},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#8b84a8',font:{size:10},callback:v=>'₹'+Number(v).toLocaleString('en-IN')},grid:{color:'rgba(255,255,255,.03)'}}}}});
+
+  const catM={};mtx.filter(t=>t.type==='expense').forEach(t=>catM[t.cat]=(catM[t.cat]||0)+t.amount);
+  const dL=Object.keys(catM),dD=Object.values(catM),dC=dL.map(l=>CAT_COLORS[l]||'#888');
+  destroyChart('donut');
+  charts['donut']=new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:dL,datasets:[{data:dD,backgroundColor:dC,borderWidth:2,borderColor:'#1a1625'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}});
+  document.getElementById('donutLegend').innerHTML=dL.map((l,i)=>`<span style="display:flex;align-items:center;gap:4px;font-family:var(--font-mono);color:var(--text-sec)"><span style="width:7px;height:7px;border-radius:2px;background:${dC[i]};display:inline-block"></span>${l.split(' ').slice(1).join(' ')}</span>`).join('');
+
+  const sorted=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,6);
+  document.getElementById('recentCount').textContent=sorted.length+' shown';
+  renderTxList(sorted,'recentList',false);
+}
+
+function addTx(){
+  const type=document.getElementById('txType').value,amount=parseFloat(document.getElementById('txAmount').value),cat=document.getElementById('txCat').value,date=document.getElementById('txDate').value,note=document.getElementById('txNote').value;
+  if(!amount||amount<=0||!date){alert('Please enter amount and date.');return;}
+  txs.push({id:nextId++,type,amount,cat,date,note});
+  renderAllTxs();renderDash();
+  document.getElementById('txAmount').value='';document.getElementById('txNote').value='';
+}
+function deleteTx(id){txs=txs.filter(t=>t.id!==id);renderAllTxs();renderDash();}
+function renderAllTxs(){
+  const sorted=[...txs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  document.getElementById('allTxCount').textContent=txs.length+' entries';
+  renderTxList(sorted,'allTxList',true);
+}
+function renderTxList(arr,elId,del){
+  const el=document.getElementById(elId);
+  if(!arr.length){el.innerHTML=`<div class="text-center py-4" style="color:var(--text-dim);font-family:var(--font-mono);font-size:.75rem">[ NO DATA ]</div>`;return;}
+  el.innerHTML=arr.map(t=>`<div class="tx-row"><div class="tx-emoji">${t.cat.split(' ')[0]}</div><div class="tx-info"><div class="tx-name">${t.note||t.cat}</div><div class="tx-meta">${t.cat.split(' ').slice(1).join(' ')} &bull; ${t.date}</div></div><span class="tx-badge ${t.type==='income'?'inc':'exp'}">${t.type==='income'?'+':'-'}${fmtD(t.amount)}</span>${del?`<button class="btn-neon-sm ms-2" onclick="deleteTx(${t.id})"><i class="bi bi-trash"></i></button>`:''}</div>`).join('');
+}
+
+function renderBudgetPage(){
+  const budCats=Object.keys(budgets),mtx=getMonthTxs();
+  document.getElementById('budgetInputs').innerHTML=budCats.map(cat=>`<div class="mb-3"><label class="os-label">${cat}</label><input class="os-input form-control" type="number" id="bud_${CSS.escape(cat)}" value="${budgets[cat]||0}" min="0" step="10"></div>`).join('');
+  document.getElementById('budgetBars').innerHTML=budCats.map(cat=>{
+    const spent=mtx.filter(t=>t.type==='expense'&&t.cat===cat).reduce((s,t)=>s+t.amount,0),bud=budgets[cat]||0,pct=bud>0?Math.min(Math.round(spent/bud*100),100):0,over=bud>0&&spent>bud;
+    const color=over?'var(--rose)':pct>75?'var(--gold)':'var(--emerald)';
+    return `<div class="bud-row"><div class="bud-hd"><span class="bud-cat">${cat}</span><span class="bud-amt">${fmt(spent)} / ${fmt(bud)}${over?' ⚡':''}</span></div><div class="bud-track"><div class="bud-fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+  }).join('');
+  const rd=budCats.map(cat=>{const spent=mtx.filter(t=>t.type==='expense'&&t.cat===cat).reduce((s,t)=>s+t.amount,0);return Math.round(spent/(budgets[cat]||1)*100);});
+  destroyChart('radar');
+  charts['radar']=new Chart(document.getElementById('radarChart'),{type:'radar',data:{labels:budCats.map(c=>c.split(' ').slice(1).join(' ')),datasets:[{label:'Usage %',data:rd,backgroundColor:'rgba(139,92,246,.1)',borderColor:'var(--violet)',borderWidth:2,pointBackgroundColor:'#8b5cf6',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b84a8',font:{family:'JetBrains Mono',size:10}}}},scales:{r:{angleLines:{color:'rgba(139,92,246,.08)'},grid:{color:'rgba(139,92,246,.08)'},ticks:{color:'#8b84a8',backdropColor:'transparent',font:{family:'JetBrains Mono',size:9}},pointLabels:{color:'#8b84a8',font:{family:'JetBrains Mono',size:9}}}}}});
+}
+function saveBudgets(){
+  Object.keys(budgets).forEach(cat=>{const el=document.getElementById('bud_'+CSS.escape(cat));if(el)budgets[cat]=parseFloat(el.value)||0;});
+  renderBudgetPage();renderDash();
+  const btn=event.target,orig=btn.innerHTML;
+  btn.innerHTML='<i class="bi bi-check-lg"></i> SAVED!';setTimeout(()=>btn.innerHTML=orig,1500);
+}
+
+function renderAnalytics(){
+  const l6=last6Months();
+  destroyChart('trend');
+  charts['trend']=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:l6.labels,datasets:[{label:'Expenses',data:l6.expenses,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',tension:.4,fill:true,pointBackgroundColor:'#f43f5e',pointRadius:4},{label:'Income',data:l6.income,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.07)',tension:.4,fill:true,pointBackgroundColor:'#10b981',pointRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8b84a8',font:{family:'JetBrains Mono',size:10}}}},scales:{x:{ticks:{color:'#8b84a8',font:{size:10}},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#8b84a8',font:{size:10},callback:v=>'₹'+Number(v).toLocaleString('en-IN')},grid:{color:'rgba(255,255,255,.03)'}}}}});
+  const catM={};txs.filter(t=>t.type==='expense').forEach(t=>catM[t.cat]=(catM[t.cat]||0)+t.amount);
+  const cL=Object.keys(catM).sort((a,b)=>catM[b]-catM[a]);
+  destroyChart('cat');
+  charts['cat']=new Chart(document.getElementById('catChart'),{type:'bar',data:{labels:cL.map(l=>l.split(' ').slice(1).join(' ')),datasets:[{label:'Total Spent',data:cL.map(l=>catM[l]),backgroundColor:cL.map(l=>CAT_COLORS[l]||'#888'),borderRadius:6,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8b84a8',font:{size:10},callback:v=>'₹'+Number(v).toLocaleString('en-IN')},grid:{color:'rgba(255,255,255,.03)'}},y:{ticks:{color:'#8b84a8',font:{size:10}},grid:{display:false}}}}});
+  const mtx=getMonthTxs(),inc=totalInc(mtx),exp=totalExp(mtx);
+  const rate=inc>0?Math.round((inc-exp)/inc*100):0,topCat=cL[0]||'—',avgExp=Math.round(txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0)/(txs.filter(t=>t.type==='expense').length||1));
+  document.getElementById('insightsRow').innerHTML=[
+    {emoji:'🏆',val:topCat.split(' ').slice(1).join(' ')||'—',lbl:'Top Category',col:'var(--gold)'},
+    {emoji:'📊',val:rate+'%',lbl:'Savings Rate',col:rate>=20?'var(--emerald)':rate>=10?'var(--gold)':'var(--rose)'},
+    {emoji:'💳',val:fmt(avgExp),lbl:'Avg Expense',col:'var(--violet-lite)'},
+    {emoji:'📅',val:fmt(inc-exp),lbl:'Month Balance',col:inc>=exp?'var(--emerald)':'var(--rose)'},
+  ].map(i=>`<div class="insight-card"><div class="insight-emoji">${i.emoji}</div><div class="insight-val" style="color:${i.col}">${i.val}</div><div class="insight-lbl">${i.lbl}</div></div>`).join('');
+}
+
+function last6Months(){
+  const now=new Date(),labels=[],income=[],expenses=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const mt=txs.filter(t=>getMonth(t.date)===key);
+    labels.push(d.toLocaleDateString('en-US',{month:'short'}));
+    income.push(totalInc(mt));expenses.push(totalExp(mt));
+  }
+  return{labels,income,expenses};
+}
+
+/* AI Advisor */
+const QUICK_QS=['How is my budget health?','Where am I overspending?','How to increase savings?','Analyse my cash flow','Top savings tips for me'];
+function renderChips(){document.getElementById('quickChips').innerHTML=QUICK_QS.map(q=>`<span class="chip" onclick="chipAsk('${q}')">${q}</span>`).join('');}
+function chipAsk(q){document.getElementById('chatInput').value=q;sendChat();}
+async function sendChat(){
+  const inp=document.getElementById('chatInput'),msg=inp.value.trim();
+  if(!msg)return;inp.value='';addBubble(msg,'user');
+  if(!apiKey){addBubble('⚠️ Please add your Anthropic API key in the source to use the AI Advisor.','ai');return;}
+  const mtx=getMonthTxs(),inc=totalInc(mtx),exp=totalExp(mtx);
+  const catM={};txs.filter(t=>t.type==='expense').forEach(t=>catM[t.cat]=(catM[t.cat]||0)+t.amount);
+  const topCats=Object.entries(catM).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([c,v])=>`${c.split(' ').slice(1).join(' ')}: ₹${Number(v).toLocaleString('en-IN')}`).join(', ');
+  const budSummary=Object.entries(budgets).map(([cat,bud])=>{const spent=mtx.filter(t=>t.type==='expense'&&t.cat===cat).reduce((s,t)=>s+t.amount,0);return`${cat.split(' ').slice(1).join(' ')}: spent ₹${Number(spent).toLocaleString('en-IN')} vs budget ₹${Number(bud).toLocaleString('en-IN')} (${bud>0?Math.round(spent/bud*100):0}%)`;}).join('\n');
+  const system=`You are WealthOS AI, an expert personal finance advisor.\nThis Month: Income ₹${Number(inc).toLocaleString('en-IN')}, Expenses ₹${Number(exp).toLocaleString('en-IN')}, Net ₹${Number(inc-exp).toLocaleString('en-IN')}, Savings rate ${inc>0?Math.round((inc-exp)/inc*100):0}%\nTop spending: ${topCats}\nBudget status:\n${budSummary}\nTotal transactions: ${txs.length}\nGive specific, actionable advice based on this real data. Be warm, concise (3-6 sentences), and practical. Use relevant emojis.`;
+  const tid=addTyping();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system,messages:[{role:'user',content:msg}]})});
+    removeTyping(tid);
+    if(!res.ok){const e=await res.json().catch(()=>({}));addBubble('⚠️ API error ('+res.status+'): '+(e?.error?.message||'Unknown error'),'ai');return;}
+    const data=await res.json();
+    addBubble(data.content?.find(b=>b.type==='text')?.text||'Sorry, could not generate a response.','ai');
+  }catch(err){removeTyping(tid);addBubble('⚠️ Network error. Please check your connection.','ai');}
+}
+let tidx=0;
+function addBubble(text,role){
+  const box=document.getElementById('chatMessages'),div=document.createElement('div');
+  div.className='bubble '+role;
+  div.innerHTML=`<div class="bub-label">${role==='user'?'// YOU':'// WEALTHOS AI'}</div><div class="bub-body">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}</div>`;
+  box.appendChild(div);box.scrollTop=box.scrollHeight;
+}
+function addTyping(){
+  const id='t'+(++tidx),box=document.getElementById('chatMessages'),div=document.createElement('div');
+  div.className='bubble ai';div.id=id;
+  div.innerHTML=`<div class="bub-label">// WEALTHOS AI</div><div class="bub-body"><div class="typing-anim"><span></span><span></span><span></span></div></div>`;
+  box.appendChild(div);box.scrollTop=box.scrollHeight;return id;
+}
+function removeTyping(id){const el=document.getElementById(id);if(el)el.remove();}
+</script>
+</body>
+</html>
